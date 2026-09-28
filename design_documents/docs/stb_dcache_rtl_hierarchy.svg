@@ -1,0 +1,308 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2000" viewBox="0 0 3000 2000" role="img" aria-labelledby="title desc">
+  <title id="title">stb_dcache 当前 RTL 顶层层次、端口与模块间交互</title>
+  <desc id="desc">依据 stb_dcache.sv、stb_dc_front.sv、stb_dc_core.sv 和 stb_dc_biu.sv 绘制。显示顶层61个端口的分组、u_front、u_core、u_biu、ECC decoder、SRAM接口和内部握手信号。</desc>
+  <defs>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#2563eb"/></marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#059669"/></marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#d97706"/></marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#dc2626"/></marker>
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 Z" fill="#475569"/></marker>
+  </defs>
+  <style>
+    text{font-family:"Microsoft YaHei","Noto Sans CJK SC",Arial,sans-serif;fill:#172554}
+    .title{font-size:34px;font-weight:700}.sub{font-size:19px;fill:#475569}.h1{font-size:25px;font-weight:700}.h2{font-size:21px;font-weight:700}.body{font-size:18px}.small{font-size:16px}.tiny{font-size:15px}.mono{font-family:Consolas,"Courier New",monospace}
+    .top{fill:#f8fafc;stroke:#1e293b;stroke-width:3}.front{fill:#eff6ff;stroke:#2563eb;stroke-width:2.5}.core{fill:#ecfdf5;stroke:#059669;stroke-width:2.5}.inner{fill:#fff;stroke:#64748b;stroke-width:1.8}.biu{fill:#fff7ed;stroke:#d97706;stroke-width:2.2}.ext{fill:#fff;stroke:#94a3b8;stroke-width:2}.ecc{fill:#f5f3ff;stroke:#7c3aed;stroke-width:1.8}.note{fill:#fffbeb;stroke:#eab308;stroke-width:1.8}
+    .blue{fill:none;stroke:#2563eb;stroke-width:2.4}.green{fill:none;stroke:#059669;stroke-width:2.4}.orange{fill:none;stroke:#d97706;stroke-width:2.4}.red{fill:none;stroke:#dc2626;stroke-width:2.2}.gray{fill:none;stroke:#475569;stroke-width:2}.ctrl{stroke-dasharray:8 6}
+    .lbl{font-size:16px;fill:#334155}.portIn{fill:#0f766e}.portOut{fill:#b45309}
+  </style>
+
+  <rect width="3000" height="2000" fill="#ffffff"/>
+  <text x="38" y="48" class="title">stb_dcache · 当前 RTL 实例级顶层框图</text>
+  <text x="38" y="82" class="sub">依据当前 SystemVerilog 例化与连线；默认配置：128KiB、4 way、32B line、STB_DEPTH=4、ECC enabled</text>
+  <text x="38" y="110" class="sub">蓝色：LSU/Front请求响应　绿色：SRAM与Cache数据　橙色：BIU事务　红色：CBO/ECC错误　虚线：控制</text>
+
+  <!-- external left -->
+  <rect x="30" y="145" width="455" height="135" rx="12" class="ext"/>
+  <text x="50" y="178" class="h2">时钟 / 复位 / 测试</text>
+  <text x="50" y="212" class="body"><tspan class="portIn">IN</tspan> clk_i, rst_n_i</text>
+  <text x="50" y="244" class="body"><tspan class="portIn">IN</tspan> test_mode_i（当前仅预留 ICG）</text>
+
+  <rect x="30" y="325" width="455" height="305" rx="12" class="ext"/>
+  <text x="50" y="360" class="h2">LSU · TileLink Slave</text>
+  <text x="50" y="398" class="body"><tspan class="portIn">IN</tspan> tl_slv_a_ch_i [117]</text>
+  <text x="50" y="428" class="body"><tspan class="portIn">IN</tspan> tl_slv_a_vld_i [1]</text>
+  <text x="50" y="458" class="body"><tspan class="portOut">OUT</tspan> tl_slv_a_rdy_o [1]</text>
+  <text x="50" y="505" class="body"><tspan class="portOut">OUT</tspan> tl_slv_d_ch_o [78]</text>
+  <text x="50" y="535" class="body"><tspan class="portOut">OUT</tspan> tl_slv_d_vld_o [1]</text>
+  <text x="50" y="565" class="body"><tspan class="portIn">IN</tspan> tl_slv_d_rdy_i [1] = 1</text>
+  <text x="50" y="602" class="small">D ready 不进入 u_front，仅用于顶层仿真断言</text>
+
+  <rect x="30" y="675" width="455" height="175" rx="12" class="ext"/>
+  <text x="50" y="710" class="h2">状态 / LR控制</text>
+  <text x="50" y="748" class="body"><tspan class="portOut">OUT</tspan> stb_drained_out</text>
+  <text x="50" y="778" class="body"><tspan class="portOut">OUT</tspan> dc_fsm_busy</text>
+  <text x="50" y="808" class="body"><tspan class="portIn">IN</tspan> lr_invalid</text>
+
+  <rect x="30" y="895" width="455" height="250" rx="12" class="ext"/>
+  <text x="50" y="930" class="h2">CBO控制方</text>
+  <text x="50" y="968" class="body"><tspan class="portIn">IN</tspan> cbo_req_i</text>
+  <text x="50" y="998" class="body"><tspan class="portIn">IN</tspan> cbo_type_i [3], cbo_addr_i [32]</text>
+  <text x="50" y="1043" class="body"><tspan class="portOut">OUT</tspan> cbo_ack_o</text>
+  <text x="50" y="1073" class="body"><tspan class="portOut">OUT</tspan> cbo_bus_err_o</text>
+  <text x="50" y="1103" class="body"><tspan class="portOut">OUT</tspan> cbo_ecc_err_o</text>
+
+  <rect x="30" y="1190" width="455" height="285" rx="12" class="ext"/>
+  <text x="50" y="1225" class="h2">Errctrl · ECC事件</text>
+  <text x="50" y="1263" class="body"><tspan class="portIn">IN</tspan> check_en_i</text>
+  <text x="50" y="1308" class="body"><tspan class="portOut">OUT</tspan> tag_err_vld_o</text>
+  <text x="50" y="1338" class="body"><tspan class="portOut">OUT</tspan> tag_err_addr_o [18]</text>
+  <text x="50" y="1368" class="body"><tspan class="portOut">OUT</tspan> tag_err_type_o [2]</text>
+  <text x="50" y="1413" class="body"><tspan class="portOut">OUT</tspan> data_err_vld_o / addr[18] / type[2]</text>
+  <text x="50" y="1448" class="small">HAS_DCache_Check 条件端口</text>
+
+  <!-- top boundary -->
+  <rect x="545" y="145" width="1870" height="1715" rx="20" class="top"/>
+  <text x="575" y="186" class="h1">module stb_dcache #(STB_DEPTH=4)</text>
+  <text x="575" y="215" class="small mono">顶层职责：例化 u_front/u_core；四路Data接口展开；tagram_wm_o='1；错误端口条件连接</text>
+
+  <!-- front -->
+  <rect x="600" y="260" width="700" height="1415" rx="18" class="front"/>
+  <text x="625" y="300" class="h1">u_front : stb_dc_front #(DEPTH=STB_DEPTH)</text>
+  <text x="625" y="332" class="small">LSU顺序、Store Buffer、Load转发、D响应、LR reservation</text>
+
+  <rect x="645" y="375" width="610" height="200" rx="12" class="inner"/>
+  <text x="668" y="410" class="h2">A通道译码与接收仲裁</text>
+  <text x="668" y="446" class="body">PutFull/PutPartial → STORE</text>
+  <text x="668" y="476" class="body">Get → LOAD/LR；Arithmetic/Logical → AMO/SC</text>
+  <text x="668" y="506" class="body">Load优先于 drain；原子请求等待 drained_o</text>
+  <text x="668" y="536" class="body mono">a_fire = a_valid_i &amp; a_ready_o</text>
+
+  <rect x="645" y="620" width="295" height="300" rx="12" class="inner"/>
+  <text x="668" y="655" class="h2">4-entry STB</text>
+  <text x="668" y="692" class="body mono">valid_q[DEPTH]</text>
+  <text x="668" y="722" class="body mono">addr_q[][31:0]</text>
+  <text x="668" y="752" class="body mono">data_q[][63:0]</text>
+  <text x="668" y="782" class="body mono">mask_q[][7:0]</text>
+  <text x="668" y="824" class="body">同地址按字节合并</text>
+  <text x="668" y="854" class="body">drain握手即释放head</text>
+  <text x="668" y="884" class="body mono">head_q / tail_q / count_q</text>
+
+  <rect x="960" y="620" width="295" height="300" rx="12" class="inner"/>
+  <text x="983" y="655" class="h2">Load转发与等待上下文</text>
+  <text x="983" y="692" class="body">查询 STB + DC pending</text>
+  <text x="983" y="722" class="body">全覆盖：下一拍直接返回</text>
+  <text x="983" y="752" class="body">部分覆盖：保存并等待DC</text>
+  <text x="983" y="794" class="body mono">front_q / front_a_q</text>
+  <text x="983" y="824" class="body mono">fwd_q[63:0]</text>
+  <text x="983" y="854" class="body mono">fmask_q[7:0] / stall_q</text>
+  <text x="983" y="884" class="body mono">kind_q / atomic_*_q</text>
+
+  <rect x="645" y="965" width="610" height="220" rx="12" class="inner"/>
+  <text x="668" y="1000" class="h2">D响应选择与前台释放</text>
+  <text x="668" y="1036" class="body">Store / STB全转发 / SC失败：d_q 寄存响应</text>
+  <text x="668" y="1066" class="body">DCache result_direct_i：组合直达 D 通道</text>
+  <text x="668" y="1096" class="body">部分转发：merge(result_data_i, fwd_q, fmask_q)</text>
+  <text x="668" y="1126" class="body mono">d_valid_o = d_valid_q | direct_result</text>
+  <text x="668" y="1156" class="body">tl_d_error恒0；D消费沿可接下一笔LSU请求</text>
+
+  <rect x="645" y="1230" width="610" height="235" rx="12" class="inner"/>
+  <text x="668" y="1265" class="h2">LR/SC reservation</text>
+  <text x="668" y="1302" class="body mono">res_q / res_addr_q[31:0] / res_mask_q[7:0]</text>
+  <text x="668" y="1332" class="body mono">lr_killed_q</text>
+  <text x="668" y="1374" class="body">lr_set_i 建立；lr_invalid_i / Store / CBO 失效</text>
+  <text x="668" y="1404" class="body">SC失败由Front直接返回1，不访问DCache</text>
+  <text x="668" y="1434" class="body">SC成功进入Core，返回0</text>
+
+  <rect x="645" y="1510" width="610" height="115" rx="12" class="note"/>
+  <text x="668" y="1544" class="h2">Front输出到Core的唯一请求口</text>
+  <text x="668" y="1580" class="body mono">req_o : dc_req_t [116] + req_valid_o / req_ready_i</text>
+
+  <!-- core -->
+  <rect x="1390" y="260" width="970" height="1415" rx="18" class="core"/>
+  <text x="1415" y="300" class="h1">u_core : stb_dc_core</text>
+  <text x="1415" y="332" class="small">Blocking DCache主状态机、命中/替换、SRAM流水、ECC、CBO、refill/writeback</text>
+
+  <rect x="1435" y="375" width="420" height="330" rx="12" class="inner"/>
+  <text x="1458" y="410" class="h2">主控制器 / 当前事务上下文</text>
+  <text x="1458" y="446" class="body mono">control_t c_q, c_d</text>
+  <text x="1458" y="476" class="body mono">state_e c_q.state</text>
+  <text x="1458" y="512" class="small mono">IDLE → LOOKUP_ECC → LOOKUP_EVAL</text>
+  <text x="1458" y="540" class="small mono">AMO_WRITE / SCRUB / VICTIM_READ</text>
+  <text x="1458" y="568" class="small mono">WB_WAIT / REFILL / ZERO_WRITE</text>
+  <text x="1458" y="596" class="small mono">CBO_TAG / SCAN</text>
+  <text x="1458" y="638" class="body">保存 req / set / way / refill进度</text>
+  <text x="1458" y="668" class="body">关键beat、bus error、CBO累计错误</text>
+
+  <rect x="1880" y="375" width="435" height="330" rx="12" class="inner"/>
+  <text x="1903" y="410" class="h2">Cache元数据与行缓冲</text>
+  <text x="1903" y="446" class="body mono">valid_q[SETS][3:0]</text>
+  <text x="1903" y="476" class="body mono">lfsr_q[15:0]</text>
+  <text x="1903" y="506" class="body mono">tag_q / data_q[3:0]</text>
+  <text x="1903" y="536" class="body mono">hit_mask / dirty_mask / hit_way</text>
+  <text x="1903" y="566" class="body mono">victim_way / selected_data / new_data</text>
+  <text x="1903" y="608" class="body mono">line_q[3:0][63:0]</text>
+  <text x="1903" y="638" class="body">32B dirty victim回写缓冲</text>
+  <text x="1903" y="668" class="body">refill逐beat写Data SRAM</text>
+
+  <rect x="1435" y="755" width="420" height="315" rx="12" class="ecc"/>
+  <text x="1458" y="790" class="h2">ECC decode 子模块</text>
+  <text x="1458" y="832" class="body mono">u_tag_codec : ecc_codec</text>
+  <text x="1458" y="862" class="small">tag_rdata_i → tag_dec / single / double</text>
+  <text x="1458" y="908" class="body mono">g_data_codec[0:3].u_codec</text>
+  <text x="1458" y="938" class="small">data_rdata_i[way] → data_dec[way]</text>
+  <text x="1458" y="968" class="small">→ single_dec[way] / double_dec[way]</text>
+  <text x="1458" y="1012" class="body">写数据ECC由组合编码函数形成</text>
+  <text x="1458" y="1042" class="small">单错修复；双错上报并继续当前访问</text>
+
+  <rect x="1880" y="755" width="435" height="315" rx="12" class="inner"/>
+  <text x="1903" y="790" class="h2">SRAM命令与流水</text>
+  <text x="1903" y="832" class="body">T1 请求握手并发起同步读</text>
+  <text x="1903" y="862" class="body">T2 SRAM返回、ECC解码并寄存</text>
+  <text x="1903" y="892" class="body">T3 Load返回 / Store写Data</text>
+  <text x="1903" y="922" class="body">AMO T3寄存结果、T4写Data</text>
+  <text x="1903" y="964" class="body mono">tag_addr/wdata/ceb/web</text>
+  <text x="1903" y="994" class="body mono">data_addr/wdata/ceb/web/wm [4 way]</text>
+  <text x="1903" y="1034" class="small">CEB/WEB低有效；Data mask 9bit/way</text>
+
+  <rect x="1550" y="1150" width="650" height="390" rx="14" class="biu"/>
+  <text x="1575" y="1188" class="h1">u_biu : stb_dc_biu</text>
+  <text x="1575" y="1222" class="small">单 outstanding、32B TileLink多拍 Get/Put 引擎</text>
+  <text x="1575" y="1264" class="body"><tspan class="mono">Core → BIU</tspan></text>
+  <text x="1600" y="1294" class="small mono">bus_start, bus_put, bus_base[31:0]</text>
+  <text x="1600" y="1322" class="small mono">line_q[3:0][63:0], bus_refill_ready</text>
+  <text x="1575" y="1365" class="body"><tspan class="mono">BIU → Core</tspan></text>
+  <text x="1600" y="1395" class="small mono">bus_idle, bus_refill_fire, bus_beat[1:0]</text>
+  <text x="1600" y="1423" class="small mono">bus_data[63:0], bus_error</text>
+  <text x="1600" y="1451" class="small mono">bus_done, bus_failed</text>
+  <text x="1575" y="1494" class="small">Get：1个A + 4个D；Put：4个A + 1个D应答</text>
+
+  <rect x="1435" y="1580" width="880" height="55" rx="10" class="note"/>
+  <text x="1455" y="1615" class="body">主状态机位置：<tspan class="mono">stb_dc_core.sv / u_core / c_q.state</tspan></text>
+
+  <!-- external right -->
+  <rect x="2460" y="230" width="510" height="300" rx="12" class="ext"/>
+  <text x="2480" y="266" class="h2">外部 BIU · TileLink Master</text>
+  <text x="2480" y="307" class="body"><tspan class="portOut">OUT</tspan> dc_tl_mst_a_ch_o [117]</text>
+  <text x="2480" y="337" class="body"><tspan class="portOut">OUT</tspan> dc_tl_mst_a_vld_o</text>
+  <text x="2480" y="367" class="body"><tspan class="portIn">IN</tspan> dc_tl_mst_a_rdy_i</text>
+  <text x="2480" y="412" class="body"><tspan class="portIn">IN</tspan> dc_tl_mst_d_ch_i [78]</text>
+  <text x="2480" y="442" class="body"><tspan class="portIn">IN</tspan> dc_tl_mst_d_vld_i</text>
+  <text x="2480" y="472" class="body"><tspan class="portOut">OUT</tspan> dc_tl_mst_d_rdy_o</text>
+  <text x="2480" y="505" class="small">u_core端口直接连接u_biu A/D口</text>
+
+  <rect x="2460" y="590" width="510" height="270" rx="12" class="ext"/>
+  <text x="2480" y="626" class="h2">外部 Tag SRAM · 单块共享</text>
+  <text x="2480" y="667" class="body"><tspan class="portOut">OUT</tspan> tagram_addr_o [10]</text>
+  <text x="2480" y="697" class="body"><tspan class="portOut">OUT</tspan> tagram_wdata_o [59]</text>
+  <text x="2480" y="727" class="body"><tspan class="portIn">IN</tspan> tagram_rdata_i [59]</text>
+  <text x="2480" y="757" class="body"><tspan class="portOut">OUT</tspan> tagram_CEB_o / WEB_o</text>
+  <text x="2480" y="787" class="body"><tspan class="portOut">OUT</tspan> tagram_wm_o [59] = '1</text>
+  <text x="2480" y="825" class="small">四路Tag+Dirty整体ECC编码</text>
+
+  <rect x="2460" y="920" width="510" height="580" rx="12" class="ext"/>
+  <text x="2480" y="956" class="h2">外部 Data SRAM × 4 way</text>
+  <text x="2480" y="998" class="body">每一路 wayN，N=0..3：</text>
+  <text x="2500" y="1038" class="body"><tspan class="portOut">OUT</tspan> dataram_N_addr_o [12]</text>
+  <text x="2500" y="1068" class="body"><tspan class="portOut">OUT</tspan> dataram_N_wdata_o [72]</text>
+  <text x="2500" y="1098" class="body"><tspan class="portIn">IN</tspan> dataram_N_rdata_i [72]</text>
+  <text x="2500" y="1128" class="body"><tspan class="portOut">OUT</tspan> dataram_N_CEB_o</text>
+  <text x="2500" y="1158" class="body"><tspan class="portOut">OUT</tspan> dataram_N_WEB_o</text>
+  <text x="2500" y="1188" class="body"><tspan class="portOut">OUT</tspan> dataram_N_wm_o [9]</text>
+  <text x="2480" y="1240" class="body">顶层内部聚合总线：</text>
+  <text x="2500" y="1274" class="small mono">ram_addr  [3:0][11:0]</text>
+  <text x="2500" y="1302" class="small mono">ram_wdata [3:0][71:0]</text>
+  <text x="2500" y="1330" class="small mono">ram_rdata [3:0][71:0]</text>
+  <text x="2500" y="1358" class="small mono">ram_ceb / ram_web [3:0]</text>
+  <text x="2500" y="1386" class="small mono">ram_wm [3:0][8:0]</text>
+  <text x="2480" y="1438" class="small">每路64bit数据 + 8bit ECC；同步单端口</text>
+  <text x="2480" y="1468" class="small">CEB/WEB低有效</text>
+
+  <!-- clocks -->
+  <path d="M485 205 H565 V345 H600" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <path d="M565 205 V235 H1365 V345 H1390" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="785" y="230" class="lbl">clk_i / rst_n_i</text>
+
+  <!-- LSU/front -->
+  <path d="M485 410 H600" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="500" y="397" class="lbl mono">A ch/vld</text>
+  <path d="M600 455 H485" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="500" y="482" class="lbl mono">A rdy</text>
+  <path d="M600 535 H485" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="500" y="522" class="lbl mono">D ch/vld</text>
+
+  <!-- status/LR -->
+  <path d="M485 804 H570 V1325 H645" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="500" y="790" class="lbl mono">lr_invalid</text>
+  <path d="M600 760 H485" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="500" y="742" class="lbl mono">drained</text>
+  <path d="M1390 690 H1345 V835 H485" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="1130" y="820" class="lbl mono">busy_o → dc_fsm_busy</text>
+
+  <!-- front/core main interactions -->
+  <path d="M1300 500 H1390" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="1310" y="477" class="lbl mono">dc_req[116]</text>
+  <text x="1310" y="497" class="lbl mono">dc_valid</text>
+  <path d="M1390 535 H1300" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="1310" y="560" class="lbl mono">dc_ready</text>
+
+  <path d="M1300 650 H1390" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="1308" y="632" class="lbl mono">front_quiet</text>
+  <path d="M1300 690 H1390" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="1308" y="676" class="lbl mono">stb_drained_out</text>
+
+  <path d="M1390 850 H1300" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="1308" y="828" class="lbl mono">pending_valid</text>
+  <text x="1308" y="848" class="lbl mono">pending_req[116]</text>
+
+  <path d="M1390 1030 H1300" class="blue" marker-end="url(#arrowBlue)"/>
+  <text x="1308" y="955" class="lbl mono">result_valid</text>
+  <text x="1308" y="975" class="lbl mono">result_direct</text>
+  <text x="1308" y="995" class="lbl mono">result_failed</text>
+  <text x="1308" y="1015" class="lbl mono">result_data[63:0]</text>
+
+  <path d="M1390 1200 H1300" class="gray ctrl" marker-end="url(#arrowGray)"/>
+  <text x="1308" y="1145" class="lbl mono">work_done</text>
+  <text x="1308" y="1165" class="lbl mono">lr_set</text>
+  <text x="1308" y="1185" class="lbl mono">front_block</text>
+  <text x="1308" y="1205" class="lbl mono">cbo_accept</text>
+
+  <!-- CBO and error routes -->
+  <path d="M485 1005 H525 V1740 H1360 V650 H1390" class="red ctrl" marker-end="url(#arrowRed)"/>
+  <text x="610" y="1765" class="lbl mono">cbo_req/type/addr → u_core；ack/bus_err/ecc_err ← u_core</text>
+  <path d="M485 1325 H515 V1790 H2280 V1050 H2315" class="red ctrl" marker-end="url(#arrowRed)"/>
+  <text x="1190" y="1818" class="lbl mono">check_en → u_core；tag/data err valid + addr + type ← u_core</text>
+
+  <!-- core internal -->
+  <path d="M1645 705 V755" class="green" marker-end="url(#arrowGreen)"/>
+  <path d="M2095 705 V755" class="green" marker-end="url(#arrowGreen)"/>
+  <path d="M1855 910 H1880" class="green" marker-end="url(#arrowGreen)"/>
+  <path d="M1880 955 H1855" class="green" marker-end="url(#arrowGreen)"/>
+  <text x="1804" y="895" class="lbl">解码数据/错误</text>
+  <path d="M1875 1070 V1150" class="orange" marker-end="url(#arrowOrange)"/>
+  <text x="1888" y="1115" class="lbl">miss / victim</text>
+
+  <!-- BIU external -->
+  <path d="M2200 1250 H2390 V330 H2460" class="orange" marker-end="url(#arrowOrange)"/>
+  <text x="2240" y="1235" class="lbl mono">A ch/vld</text>
+  <path d="M2460 430 H2370 V1405 H2200" class="orange" marker-end="url(#arrowOrange)"/>
+  <text x="2215" y="1435" class="lbl mono">D ch/vld</text>
+  <path d="M2460 370 H2400 V1280 H2200" class="orange ctrl" marker-end="url(#arrowOrange)"/>
+  <text x="2225" y="1305" class="lbl mono">A ready</text>
+  <path d="M2200 1468 H2420 V470 H2460" class="orange ctrl" marker-end="url(#arrowOrange)"/>
+  <text x="2240" y="1492" class="lbl mono">D ready</text>
+
+  <!-- SRAM external -->
+  <path d="M2315 840 H2430 V700 H2460" class="green" marker-end="url(#arrowGreen)"/>
+  <text x="2325" y="822" class="lbl mono">tag cmd/write</text>
+  <path d="M2460 745 H2410 V890 H1855" class="green" marker-end="url(#arrowGreen)"/>
+  <text x="2260" y="878" class="lbl mono">tag_rdata</text>
+  <path d="M2315 960 H2435 V1080 H2460" class="green" marker-end="url(#arrowGreen)"/>
+  <text x="2320" y="945" class="lbl mono">ram cmd/write[4]</text>
+  <path d="M2460 1140 H2405 V1000 H2315" class="green" marker-end="url(#arrowGreen)"/>
+  <text x="2325" y="1025" class="lbl mono">ram_rdata[4]</text>
+
+  <!-- footer -->
+  <text x="38" y="1908" class="sub">默认位宽来自当前宏：dc_req_t=116bit；TileLink A=117bit；TileLink D=78bit；Tag SRAM=59bit；每路Data SRAM=72bit。</text>
+  <text x="38" y="1940" class="sub">SRAM宏位于 stb_dcache 边界外。u_core 内部 u_biu 负责协议多拍；u_core 主FSM负责请求生命周期、SRAM命令及错误策略。</text>
+  <text x="38" y="1972" class="sub">更新：2026-09-23　源文件：stb_dcache.sv / stb_dc_front.sv / stb_dc_core.sv / stb_dc_biu.sv</text>
+</svg>

@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1700" viewBox="0 0 2200 1700" role="img" aria-labelledby="title desc">
+<title id="title">stb_dcache 整体架构与顶层端口</title>
+<desc id="desc">根据stb_dcache.sv与LLD绘制。展示顶层端口、4项STB、DC请求上下文、Load转发、ECC、外部SRAM与BIU。位宽按128KiB和ECC开启配置。</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 Z" fill="#475569"/></marker></defs>
+<style>
+text{font-family:"Microsoft YaHei","Noto Sans CJK SC",Arial,sans-serif;fill:#172b4d}
+.title{font-size:30px;font-weight:700}.subtitle{font-size:19px;fill:#52647c}
+.boxTitle{font-size:21px;font-weight:700}.body{font-size:19px}
+.note{font-size:17px;fill:#52647c}.edgeLabel{font-size:17px;fill:#334155}
+.port{fill:#fff;stroke:#94a3b8;stroke-width:1.7}
+.front{fill:#eff6ff;stroke:#60a5fa;stroke-width:1.8}
+.dc{fill:#f0fdfa;stroke:#2dd4bf;stroke-width:1.8}
+.aux{fill:#fffbeb;stroke:#fbbf24;stroke-width:1.8}
+.boundary{fill:#f8fafc;stroke:#334155;stroke-width:2.5}
+.edge{fill:none;stroke:#475569;stroke-width:2}
+.control{fill:none;stroke:#64748b;stroke-width:1.8;stroke-dasharray:7 5}
+</style>
+<rect width="2200" height="1700" fill="#ffffff"/>
+<text x='40' y='48' class='title'>stb_dcache · 整体架构与顶层端口</text>
+<text x='40' y='82' class='subtitle'>目标：TSMC 22ULL / sign-off 1GHz     默认：128KiB / 4 way / 32B line / 64bit数据 / ECC开启</text>
+<text x='40' y='115' class='subtitle'>端口框内 IN / OUT 均相对 stb_dcache；箭头为分组连接，实线为请求/数据，虚线为控制。</text>
+<rect x='650' y='135' width='900' height='100' rx='12' class='aux'/>
+<text x='668' y='165' class='boxTitle'>时钟、复位与测试控制</text>
+<text x='668' y='196' class='body'>IN  clk_i [1]     rst_n_i [1]     test_mode_i [1]</text>
+<rect x="650" y="270" width="900" height="1190" rx="18" class="boundary"/>
+<text x='680' y='309' class='boxTitle'>stb_dcache 模块边界</text>
+<path d='M1100 235 V270' class='control' marker-end='url(#arrow)'/>
+<rect x='40' y='270' width='560' height='335' rx='12' class='port'/>
+<text x='58' y='300' class='boxTitle'>LSU · TileLink从接口</text>
+<text x='58' y='331' class='body'>IN   tl_slv_a_ch_i [117]</text>
+<text x='58' y='356' class='body'>IN   tl_slv_a_vld_i [1]</text>
+<text x='58' y='381' class='body'>OUT  tl_slv_a_rdy_o [1]</text>
+<text x='58' y='406' class='body'>OUT  tl_slv_d_ch_o [78]</text>
+<text x='58' y='431' class='body'>OUT  tl_slv_d_vld_o [1]</text>
+<text x='58' y='456' class='body'>IN   tl_slv_d_rdy_i [1]（恒1）</text>
+<text x='58' y='481' class='body'>A：addr32 / data64 / mask8 / source4</text>
+<text x='58' y='506' class='body'>D：data64 / source4 / error1（恒0）</text>
+<rect x='40' y='660' width='560' height='165' rx='12' class='port'/>
+<text x='58' y='690' class='boxTitle'>状态输出与LR失效控制</text>
+<text x='58' y='721' class='body'>OUT  stb_drained_out [1]</text>
+<text x='58' y='746' class='body'>OUT  dc_fsm_busy [1]</text>
+<text x='58' y='771' class='body'>IN   lr_invalid [1]</text>
+<rect x='40' y='880' width='560' height='260' rx='12' class='port'/>
+<text x='58' y='910' class='boxTitle'>CBO控制方</text>
+<text x='58' y='941' class='body'>IN   cbo_addr_i [32]</text>
+<text x='58' y='966' class='body'>IN   cbo_type_i [3]</text>
+<text x='58' y='991' class='body'>IN   cbo_req_i [1]</text>
+<text x='58' y='1016' class='body'>OUT  cbo_ack_o [1]</text>
+<text x='58' y='1041' class='body'>OUT  cbo_bus_err_o [1]</text>
+<text x='58' y='1066' class='body'>OUT  cbo_ecc_err_o [1]</text>
+<text x='58' y='1091' class='body'>req保持至ack；错误与ack同拍</text>
+<rect x='40' y='1195' width='560' height='265' rx='12' class='port'/>
+<text x='58' y='1225' class='boxTitle'>Errctrl · ECC检测接口</text>
+<text x='58' y='1256' class='body'>IN   check_en_i [1]</text>
+<text x='58' y='1280' class='body'>OUT  tag_err_vld_o [1]</text>
+<text x='58' y='1304' class='body'>OUT  tag_err_addr_o [18]</text>
+<text x='58' y='1328' class='body'>OUT  tag_err_type_o [2]</text>
+<text x='58' y='1352' class='body'>OUT  data_err_vld_o [1]</text>
+<text x='58' y='1376' class='body'>OUT  data_err_addr_o [18]</text>
+<text x='58' y='1400' class='body'>OUT  data_err_type_o [2]</text>
+<text x='58' y='1424' class='body'>仅 HAS_DCache_Check 定义时存在</text>
+<rect x='1600' y='270' width='560' height='245' rx='12' class='port'/>
+<text x='1618' y='300' class='boxTitle'>BIU · TileLink主接口</text>
+<text x='1618' y='331' class='body'>OUT  dc_tl_mst_a_ch_o [117]</text>
+<text x='1618' y='355' class='body'>OUT  dc_tl_mst_a_vld_o [1]</text>
+<text x='1618' y='379' class='body'>IN   dc_tl_mst_a_rdy_i [1]</text>
+<text x='1618' y='403' class='body'>IN   dc_tl_mst_d_ch_i [78]</text>
+<text x='1618' y='427' class='body'>IN   dc_tl_mst_d_vld_i [1]</text>
+<text x='1618' y='451' class='body'>OUT  dc_tl_mst_d_rdy_o [1]</text>
+<text x='1618' y='475' class='body'>一笔32B事务；四个64bit数据拍</text>
+<rect x='1600' y='545' width='560' height='195' rx='12' class='port'/>
+<text x='1618' y='575' class='boxTitle'>外部 Tag SRAM · 一块共享宏</text>
+<text x='1618' y='606' class='body'>OUT  tagram_addr_o [10]</text>
+<text x='1618' y='631' class='body'>OUT  tagram_wdata_o [59]</text>
+<text x='1618' y='656' class='body'>IN   tagram_rdata_i [59]</text>
+<text x='1618' y='681' class='body'>OUT  tagram_CEB_o [1] / tagram_WEB_o [1]</text>
+<text x='1618' y='706' class='body'>OUT  tagram_wm_o [59]</text>
+<rect x='1600' y='760' width='560' height='165' rx='12' class='port'/>
+<text x='1618' y='790' class='boxTitle'>外部 Data SRAM · way 0</text>
+<text x='1618' y='821' class='body'>OUT  dataram_0_addr_o [12]</text>
+<text x='1618' y='842' class='body'>OUT  dataram_0_wdata_o [72]</text>
+<text x='1618' y='863' class='body'>IN   dataram_0_rdata_i [72]</text>
+<text x='1618' y='884' class='body'>OUT  dataram_0_CEB_o [1] / dataram_0_WEB_o [1]</text>
+<text x='1618' y='905' class='body'>OUT  dataram_0_wm_o [9]</text>
+<rect x='1600' y='940' width='560' height='165' rx='12' class='port'/>
+<text x='1618' y='970' class='boxTitle'>外部 Data SRAM · way 1</text>
+<text x='1618' y='1001' class='body'>OUT  dataram_1_addr_o [12]</text>
+<text x='1618' y='1022' class='body'>OUT  dataram_1_wdata_o [72]</text>
+<text x='1618' y='1043' class='body'>IN   dataram_1_rdata_i [72]</text>
+<text x='1618' y='1064' class='body'>OUT  dataram_1_CEB_o [1] / dataram_1_WEB_o [1]</text>
+<text x='1618' y='1085' class='body'>OUT  dataram_1_wm_o [9]</text>
+<rect x='1600' y='1120' width='560' height='165' rx='12' class='port'/>
+<text x='1618' y='1150' class='boxTitle'>外部 Data SRAM · way 2</text>
+<text x='1618' y='1181' class='body'>OUT  dataram_2_addr_o [12]</text>
+<text x='1618' y='1202' class='body'>OUT  dataram_2_wdata_o [72]</text>
+<text x='1618' y='1223' class='body'>IN   dataram_2_rdata_i [72]</text>
+<text x='1618' y='1244' class='body'>OUT  dataram_2_CEB_o [1] / dataram_2_WEB_o [1]</text>
+<text x='1618' y='1265' class='body'>OUT  dataram_2_wm_o [9]</text>
+<rect x='1600' y='1300' width='560' height='165' rx='12' class='port'/>
+<text x='1618' y='1330' class='boxTitle'>外部 Data SRAM · way 3</text>
+<text x='1618' y='1361' class='body'>OUT  dataram_3_addr_o [12]</text>
+<text x='1618' y='1382' class='body'>OUT  dataram_3_wdata_o [72]</text>
+<text x='1618' y='1403' class='body'>IN   dataram_3_rdata_i [72]</text>
+<text x='1618' y='1424' class='body'>OUT  dataram_3_CEB_o [1] / dataram_3_WEB_o [1]</text>
+<text x='1618' y='1445' class='body'>OUT  dataram_3_wm_o [9]</text>
+<rect x='690' y='345' width='350' height='110' rx='12' class='front'/>
+<text x='708' y='375' class='boxTitle'>LSU请求译码 / 接收控制</text>
+<text x='708' y='406' class='body'>普通Store / Load / AMO / LR / SC</text>
+<text x='708' y='431' class='body'>Load d_fire沿可无空拍接受下一请求</text>
+<rect x='690' y='505' width='350' height='140' rx='12' class='front'/>
+<text x='708' y='535' class='boxTitle'>STB · 4项等待entry</text>
+<text x='708' y='566' class='body'>每项：valid + addr32</text>
+<text x='708' y='591' class='body'>data64 + mask8；同址合并</text>
+<text x='708' y='616' class='body'>drain被接受即释放entry</text>
+<rect x='690' y='720' width='350' height='145' rx='12' class='front'/>
+<text x='708' y='750' class='boxTitle'>Load当拍查询 / 转发</text>
+<text x='708' y='781' class='body'>并行查询STB与DC pending</text>
+<text x='708' y='806' class='body'>全覆盖：下一拍返回</text>
+<text x='708' y='831' class='body'>部分覆盖保存data64 + mask8</text>
+<rect x='690' y='950' width='350' height='110' rx='12' class='front'/>
+<text x='708' y='980' class='boxTitle'>Load返回数据合并</text>
+<text x='708' y='1011' class='body'>保存的转发字节覆盖DC读数据</text>
+<text x='708' y='1036' class='body'>关键beat锁定结果；晚错只失效行</text>
+<rect x='690' y='1150' width='350' height='110' rx='12' class='front'/>
+<text x='708' y='1180' class='boxTitle'>D响应选择 · 寄存/直接</text>
+<text x='708' y='1211' class='body'>普通Store接受后提前应答</text>
+<text x='708' y='1236' class='body'>Load / LR / AMO / SC返回</text>
+<rect x='1130' y='345' width='370' height='145' rx='12' class='dc'/>
+<text x='1148' y='375' class='boxTitle'>DC请求选择与当前上下文</text>
+<text x='1148' y='406' class='body'>空闲或Load hit T3移交；同沿读</text>
+<text x='1148' y='431' class='body'>当前请求为Store时即DC pending</text>
+<text x='1148' y='456' class='body'>保存addr / data / mask至完成</text>
+<rect x='1130' y='565' width='370' height='165' rx='12' class='dc'/>
+<text x='1148' y='595' class='boxTitle'>Blocking DCache · 主FSM</text>
+<text x='1148' y='626' class='body'>miss当拍发Get；dirty先回写</text>
+<text x='1148' y='651' class='body'>CBO上下文 / ECC修复</text>
+<text x='1148' y='676' class='body'>Valid阵列 / 16bit LFSR</text>
+<text x='1148' y='701' class='body'>LR reservation</text>
+<rect x='1130' y='805' width='370' height='145' rx='12' class='dc'/>
+<text x='1148' y='835' class='boxTitle'>SRAM读写与ECC流水</text>
+<text x='1148' y='866' class='body'>读命令 → SRAM → ECC解码</text>
+<text x='1148' y='891' class='body'>→ 立即寄存 → 比较与way选择</text>
+<text x='1148' y='916' class='body'>refill：输入编码 → 写命令寄存</text>
+<rect x='1130' y='1030' width='370' height='105' rx='12' class='dc'/>
+<text x='1148' y='1060' class='boxTitle'>32B victim回写缓冲</text>
+<text x='1148' y='1091' class='body'>4 × 64bit；refill绕过整行缓冲</text>
+<text x='1148' y='1116' class='body'>不可作为额外Cache命中</text>
+<rect x='1130' y='1200' width='370' height='105' rx='12' class='dc'/>
+<text x='1148' y='1230' class='boxTitle'>BIU引擎 / refill流式处理</text>
+<text x='1148' y='1261' class='body'>一个outstanding；回写后再refill</text>
+<text x='1148' y='1286' class='body'>启动直通A / 关键字返回 / 流式安装</text>
+<rect x='690' y='1340' width='810' height='90' rx='12' class='aux'/>
+<text x='708' y='1370' class='boxTitle'>顺序与控制约束</text>
+<text x='708' y='1401' class='body'>T1读 / T2 ECC寄存 / T3 Load或Store；AMO T3寄存结果、T4写。</text>
+<path d='M600 355 H690' class='edge' marker-end='url(#arrow)'/>
+<text x='612' y='343' class='edgeLabel'>A</text>
+<path d='M690 1210 H625 V535 H600' class='edge' marker-end='url(#arrow)'/>
+<text x='607' y='526' class='edgeLabel'>D</text>
+<path d='M600 742 H650' class='control' marker-end='url(#arrow)'/>
+<path d='M650 775 H600' class='control' marker-end='url(#arrow)'/>
+<path d='M600 975 H650' class='control' marker-end='url(#arrow)'/>
+<path d='M650 1090 H600' class='control' marker-end='url(#arrow)'/>
+<path d='M600 1270 H650' class='control' marker-end='url(#arrow)'/>
+<path d='M650 1415 H600' class='control' marker-end='url(#arrow)'/>
+<path d='M1500 855 H1575 V625 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 685 H1563 V885 H1500' class='edge' marker-end='url(#arrow)'/>
+<path d='M1575 855 V835 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 877 H1563 V900 H1500' class='edge' marker-end='url(#arrow)'/>
+<path d='M1575 855 V1015 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 1057 H1563 V900 H1500' class='edge' marker-end='url(#arrow)'/>
+<path d='M1575 855 V1195 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 1237 H1563 V900 H1500' class='edge' marker-end='url(#arrow)'/>
+<path d='M1575 855 V1375 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 1417 H1563 V900 H1500' class='edge' marker-end='url(#arrow)'/>
+<path d='M865 455 V505' class='edge' marker-end='url(#arrow)'/>
+<text x='873' y='483' class='edgeLabel'>普通Store</text>
+<path d='M1040 400 H1070 V755 H1040' class='edge' marker-end='url(#arrow)'/>
+<text x='1051' y='686' class='edgeLabel'>Load</text>
+<path d='M1040 565 H1090 V420 H1130' class='edge' marker-end='url(#arrow)'/>
+<text x='1056' y='538' class='edgeLabel'>drain</text>
+<path d='M1040 368 H1130' class='control' marker-end='url(#arrow)'/>
+<text x='1044' y='335' class='edgeLabel'>原子/选择</text>
+<path d='M865 645 V720' class='edge' marker-end='url(#arrow)'/>
+<text x='873' y='686' class='edgeLabel'>STB转发</text>
+<path d='M1130 465 H1110 V815 H1040' class='edge' marker-end='url(#arrow)'/>
+<text x='1045' y='847' class='edgeLabel'>pending转发</text>
+<path d='M1040 790 H1080 V448 H1130' class='edge' marker-end='url(#arrow)'/>
+<text x='1050' y='907' class='edgeLabel'>未全覆盖直通</text>
+<path d='M1315 490 V565' class='edge' marker-end='url(#arrow)'/>
+<path d='M1315 730 V805' class='edge' marker-end='url(#arrow)'/>
+<text x='1326' y='770' class='edgeLabel'>读写微操作</text>
+<path d='M1130 660 H1100 V990 H1040' class='edge' marker-end='url(#arrow)'/>
+<text x='1050' y='1020' class='edgeLabel'>DC结果</text>
+<path d='M865 865 V950' class='edge' marker-end='url(#arrow)'/>
+<text x='873' y='910' class='edgeLabel'>保存的转发值</text>
+<path d='M865 1060 V1150' class='edge' marker-end='url(#arrow)'/>
+<path d='M690 785 H672 V1195 H690' class='edge' marker-end='url(#arrow)'/>
+<text x='690' y='1120' class='edgeLabel'>全覆盖直接返回</text>
+<path d='M690 430 H663 V1238 H690' class='control' marker-end='url(#arrow)'/>
+<path d='M1315 950 V1030' class='edge' marker-end='url(#arrow)'/>
+<text x='1325' y='995' class='edgeLabel'>victim / 安装</text>
+<path d='M1315 1135 V1200' class='edge' marker-end='url(#arrow)'/>
+<path d='M1500 1220 H1515 V930 H1500' class='edge' marker-end='url(#arrow)'/>
+<text x='1350' y='1000' class='edgeLabel'>refill流式写</text>
+<path d='M1130 1235 H1085 V1015 H1040' class='edge' marker-end='url(#arrow)'/>
+<text x='880' y='1096' class='edgeLabel'>Load关键beat</text>
+<path d='M1085 1235 V1190 H1040' class='edge' marker-end='url(#arrow)'/>
+<text x='880' y='1290' class='edgeLabel'>AMO旧值返回，结果再下一沿写</text>
+<path d='M1500 1250 H1587 V395 H1600' class='edge' marker-end='url(#arrow)'/>
+<path d='M1600 470 H1594 V1285 H1500' class='edge' marker-end='url(#arrow)'/>
+<text x='40' y='1510' class='subtitle'>位宽依据：dcache_def.sv / uncore_def.sv / uncore_pkg.sv；容量变化时SRAM地址与Tag位宽按宏重新计算。</text>
+<text x='40' y='1544' class='note'>A结构体：opcode3 + param3 + size3 + source4 + mask8 + addr32 + data64 = 117bit。</text>
+<text x='40' y='1575' class='note'>D结构体：opcode3 + param3 + size3 + source4 + data64 + error1 = 78bit。CEB / WEB低有效；wm按接口定义。</text>
+<text x='40' y='1606' class='note'>DC pending复用当前DCache请求寄存器；图内drain、转发与控制连接为内部逻辑，不是新增顶层端口。</text>
+<text x='40' y='1637' class='note'>AMO多拆一拍：返回/寄存结果后下一沿写；miss关键beat后反压mst D一次。RTL仿真已完成；STA待开展。</text>
+<text x='40' y='1668' class='note'>更新：2026-09-22</text>
+</svg>
